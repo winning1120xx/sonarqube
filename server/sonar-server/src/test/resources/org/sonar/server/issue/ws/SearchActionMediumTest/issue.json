@@ -23,7 +23,6 @@
     {
       "key": "xoo:x1",
       "name": "Rule name",
-      "desc": "Rule desc",
       "status": "READY"
     }
   ],

@@ -65,6 +65,7 @@ import org.sonar.server.issue.index.IssueDoc;
 import org.sonar.server.issue.index.IssueIndex;
 import org.sonar.server.rule.Rule;
 import org.sonar.server.rule.RuleService;
+import org.sonar.server.rule.ws.RuleJsonWriter;
 import org.sonar.server.user.UserSession;
 import org.sonar.server.user.ws.UserJsonWriter;
 
@@ -94,10 +95,12 @@ public class SearchAction implements IssuesWsAction {
   private final UserJsonWriter userWriter;
   private final IssueComponentHelper issueComponentHelper;
   private final ComponentJsonWriter componentWriter;
+  private final RuleJsonWriter ruleWriter;
 
   public SearchAction(DbClient dbClient, IssueService service, IssueQueryService issueQueryService,
     RuleService ruleService, ActionPlanService actionPlanService, UserFinder userFinder, I18n i18n, Languages languages,
-    UserSession userSession, IssueJsonWriter issueWriter, IssueComponentHelper issueComponentHelper, ComponentJsonWriter componentWriter, UserJsonWriter userWriter) {
+    UserSession userSession, IssueJsonWriter issueWriter, IssueComponentHelper issueComponentHelper, ComponentJsonWriter componentWriter, UserJsonWriter userWriter,
+    RuleJsonWriter ruleWriter) {
     this.dbClient = dbClient;
     this.service = service;
     this.issueQueryService = issueQueryService;
@@ -111,6 +114,7 @@ public class SearchAction implements IssuesWsAction {
     this.userWriter = userWriter;
     this.issueComponentHelper = issueComponentHelper;
     this.componentWriter = componentWriter;
+    this.ruleWriter = ruleWriter;
   }
 
   @Override
@@ -473,19 +477,10 @@ public class SearchAction implements IssuesWsAction {
     }
   }
 
-  // TODO change to use the RuleMapper
   private void writeRules(JsonWriter json, Collection<Rule> rules) {
     json.name("rules").beginArray();
     for (Rule rule : rules) {
-      json.beginObject()
-        .prop("key", rule.key().toString())
-        .prop("name", rule.name())
-        .prop("lang", rule.language())
-        .prop("desc", rule.htmlDescription())
-        .prop("status", rule.status().toString());
-      Language lang = languages.get(rule.language());
-      json.prop("langName", lang == null ? null : lang.getName());
-      json.endObject();
+      ruleWriter.write(json, rule);
     }
     json.endArray();
   }
