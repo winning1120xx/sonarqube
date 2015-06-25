@@ -20,16 +20,21 @@
 package org.sonar.server.issue.ws;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import java.util.Collections;
+import java.util.List;
+import org.sonar.api.issue.ActionPlan;
+import org.sonar.api.issue.Issue;
+import org.sonar.api.issue.internal.DefaultIssueComment;
 import org.sonar.api.server.ws.Request;
 import org.sonar.api.server.ws.Response;
 import org.sonar.api.server.ws.WebService;
 import org.sonar.api.server.ws.WebService.NewAction;
+import org.sonar.api.user.User;
 import org.sonar.api.utils.text.JsonWriter;
+import org.sonar.core.component.ComponentDto;
 import org.sonar.server.issue.IssueService;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Set tags on an issue
@@ -38,8 +43,11 @@ public class SetTagsAction implements IssuesWsAction {
 
   private final IssueService service;
 
-  public SetTagsAction(IssueService service) {
+  private final IssueJsonWriter issueWriter;
+
+  public SetTagsAction(IssueService service, IssueJsonWriter issueWriter) {
     this.service = service;
+    this.issueWriter = issueWriter;
   }
 
   @Override
@@ -62,12 +70,16 @@ public class SetTagsAction implements IssuesWsAction {
   public void handle(Request request, Response response) throws Exception {
     String key = request.mandatoryParam("key");
     List<String> tags = Objects.firstNonNull(request.paramAsStrings("tags"), Collections.<String>emptyList());
-    Collection<String> resultTags = service.setTags(key, tags);
-    JsonWriter json = response.newJsonWriter().beginObject().name("tags").beginArray();
-    for (String tag : resultTags) {
-      json.value(tag);
-    }
-    json.endArray().endObject().close();
+    service.setTags(key, tags);
+    Issue updatedIssue = service.getByKey(key);
+    JsonWriter json = response.newJsonWriter().beginObject().name("issue");
+    issueWriter.write(json, updatedIssue,
+      Maps.<String, User>newHashMap(),
+      Maps.<String, ComponentDto>newHashMap(),
+      Maps.<String, ComponentDto>newHashMap(),
+      HashMultimap.<String, DefaultIssueComment>create(),
+      Maps.<String, ActionPlan>newHashMap(), null);
+    json.endObject().close();
   }
 
 }

@@ -21,31 +21,43 @@ package org.sonar.server.issue.ws;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.sonar.api.server.ws.WebService.Action;
 import org.sonar.api.server.ws.WebService.Param;
+import org.sonar.api.utils.Durations;
 import org.sonar.server.issue.IssueService;
+import org.sonar.server.issue.IssueTesting;
+import org.sonar.server.tester.UserSessionRule;
 import org.sonar.server.ws.WsTester;
+import org.sonar.server.ws.WsTester.Result;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SetTagsActionTest {
 
+  @Rule
+  public UserSessionRule userSession = UserSessionRule.standalone();
+
   @Mock
   IssueService service;
+  IssueJsonWriter issueWriter;
   SetTagsAction sut;
   WsTester tester;
 
   @Before
   public void setUp() {
-    sut = new SetTagsAction(service);
+    issueWriter = new IssueJsonWriter(mock(Durations.class), userSession, null);
+    sut = new SetTagsAction(service, issueWriter);
     tester = new WsTester(new IssuesWs(sut));
   }
 
@@ -73,8 +85,10 @@ public class SetTagsActionTest {
   @Test
   public void should_set_tags() throws Exception {
     when(service.setTags("polop", ImmutableList.of("palap"))).thenReturn(ImmutableSet.of("palap"));
-    tester.newPostRequest("api/issues", "set_tags").setParam("key", "polop").setParam("tags", "palap").execute()
-      .assertJson("{\"tags\":[\"palap\"]}");
+    when(service.getByKey("polop")).thenReturn(IssueTesting.newDoc().setTags(Arrays.asList("palap")));
+    Result result = tester.newPostRequest("api/issues", "set_tags").setParam("key", "polop").setParam("tags", "palap").execute();
+    System.out.println(result.outputAsString());
+    result.assertJson("{\"issue\": {\"tags\":[\"palap\"]}}");
     verify(service).setTags("polop", ImmutableList.of("palap"));
   }
 }
