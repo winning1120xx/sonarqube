@@ -64,7 +64,7 @@ PRANALYSIS)
 
 ITS)
   prepareIts
-  mvn install -Pit,dev -DskipTests -Dsonar.runtimeVersion=DEV -Dcategory=$IT_CATEGORY -Dmaven.test.redirectTestOutputToFile=false -e
+  mvn install -Pit,dev -DskipTests -Dsonar.runtimeVersion=5.1.2-SNAPSHOT -Dcategory=$IT_CATEGORY -Dmaven.test.redirectTestOutputToFile=false -e
   ;;
 
 esac
