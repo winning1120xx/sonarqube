@@ -61,6 +61,17 @@ public interface MetricDefinition {
 
     NewMetric setName(String s);
 
+    NewMetric setDescription(String s);
+
+    NewMetric setDomain(String s);
+
+    // TODO use enum
+    NewMetric setType(String s);
+
+    NewMetric setQualitative(boolean b);
+
+    NewMetric setCustom(boolean b);
+
     // TODO add all fields needed on metric : domain, type, best value, direction, qualitative, etc.
 
     NewComputer createMeasureComputer();
