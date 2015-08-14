@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.session.SqlSession;
 import org.sonar.api.security.DefaultGroups;
@@ -105,5 +106,13 @@ public class PermissionDao implements Dao {
 
   private PermissionMapper mapper(SqlSession session) {
     return session.getMapper(PermissionMapper.class);
+  }
+
+  public void usersCountByProjectIdAndPermission(DbSession dbSession, List<Long> projectsIds, ResultHandler resultHandler) {
+
+  }
+
+  public void groupsCountByProjectIdAndPermission(DbSession dbSession, List<Long> rootComponentIds, ResultHandler resultHandler) {
+
   }
 }

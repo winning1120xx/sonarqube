@@ -71,6 +71,10 @@ public interface ComponentMapper {
    */
   List<ComponentDto> selectProjects();
 
+  List<ComponentDto> selectProjects(Map<String, String> parameters, RowBounds rowBounds);
+
+  int countProjects(Map<String, String> parameters);
+
   /**
    * Return all descendant modules (including itself) from a given component uuid and scope
    */

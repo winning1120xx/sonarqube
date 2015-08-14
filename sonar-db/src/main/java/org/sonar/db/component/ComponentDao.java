@@ -172,10 +172,26 @@ public class ComponentDao implements Dao {
    * Returns all projects (Scope {@link org.sonar.api.resources.Scopes#PROJECT} and qualifier
    * {@link org.sonar.api.resources.Qualifiers#PROJECT}) which are enabled.
    *
-   * Uses by Views.
+   * Used by Views.
    */
   public List<ComponentDto> selectProjects(DbSession session) {
     return mapper(session).selectProjects();
+  }
+
+  public List<ComponentDto> selectRootComponents(DbSession session, int offset, int limit, @Nullable String query) {
+    Map<String, String> parameters = newHashMapWithExpectedSize(2);
+    addProjectQualifier(parameters);
+    addPartialQueryParameterIfNotNull(parameters, query);
+
+    return mapper(session).selectProjects(parameters, new RowBounds(offset, limit));
+  }
+
+  public int countRootComponents(DbSession session, @Nullable String query) {
+    Map<String, String> parameters = newHashMapWithExpectedSize(2);
+    addProjectQualifier(parameters);
+    addPartialQueryParameterIfNotNull(parameters, query);
+
+    return mapper(session).countProjects(parameters);
   }
 
   public List<ComponentDto> selectProvisionedProjects(DbSession session, int offset, int limit, @Nullable String query) {
