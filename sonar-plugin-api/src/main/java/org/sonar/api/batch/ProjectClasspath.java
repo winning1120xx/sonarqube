@@ -26,8 +26,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 import org.sonar.api.BatchComponent;
-import org.sonar.api.batch.bootstrap.ProjectDefinition;
-import org.sonar.api.resources.ProjectFileSystem;
 import org.sonar.api.utils.SonarException;
 
 /**
@@ -37,14 +35,11 @@ import org.sonar.api.utils.SonarException;
 @Deprecated
 public class ProjectClasspath implements BatchComponent {
 
-  private final ProjectDefinition def;
-  private final ProjectFileSystem projectFileSystem;
   private List<File> elements;
   private URLClassLoader classloader;
 
-  public ProjectClasspath(ProjectDefinition def, ProjectFileSystem projectFileSystem) {
-    this.def = def;
-    this.projectFileSystem = projectFileSystem;
+  public ProjectClasspath() {
+    // no longer used
   }
 
   public URLClassLoader getClassloader() {
@@ -77,14 +72,14 @@ public class ProjectClasspath implements BatchComponent {
     }
   }
 
+  /**
+   * This method is no longer supported and will always return an empty list.
+   * @deprecated 
+   */
+  @Deprecated
   protected List<File> createElements() {
     List<File> elements = Lists.newArrayList();
-    for (String path : def.getBinaries()) {
-      elements.add(projectFileSystem.resolvePath(path));
-    }
-    for (String path : def.getLibraries()) {
-      elements.add(projectFileSystem.resolvePath(path));
-    }
+  
     return elements;
   }
 }

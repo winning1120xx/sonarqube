@@ -39,7 +39,7 @@ public final class CreateSubProjects extends ProjectBuilder {
     subProject.setKey("com.sonarsource.it.projects.batch:project-builder-module-a");
     subProject.setVersion(root.getVersion());
     subProject.setName("Module A");
-    subProject.setSourceDirs("src");
+    subProject.setSources("src");
     root.addSubProject(subProject);
     return subProject;
   }
@@ -51,7 +51,7 @@ public final class CreateSubProjects extends ProjectBuilder {
     subProject.setKey("com.sonarsource.it.projects.batch:project-builder-module-b");
     subProject.setVersion(root.getVersion());
     subProject.setName("Module B");
-    subProject.addSourceFiles("src/HelloB.java");
+    subProject.addSources("src/HelloB.java");
     root.addSubProject(subProject);
     return subProject;
   }
