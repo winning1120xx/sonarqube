@@ -19,22 +19,8 @@
  */
 package org.sonar.batch.mediumtest;
 
-import org.sonar.batch.analysis.AnalysisProperties;
-
-import org.apache.commons.lang.mutable.MutableBoolean;
-
-import javax.annotation.Nullable;
-
-import org.sonar.batch.cache.ProjectCacheStatus;
-import org.sonar.api.batch.bootstrap.ProjectDefinition;
-import org.sonarqube.ws.Rules.ListResponse.Rule;
-import org.sonar.batch.bootstrapper.IssueListener;
-import org.sonar.api.server.rule.RulesDefinition.Repository;
-import org.sonar.api.server.rule.RulesDefinition;
-import org.sonar.batch.rule.RulesLoader;
 import com.google.common.base.Function;
 import com.google.common.io.Files;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
@@ -47,16 +33,22 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
+import javax.annotation.Nullable;
+import org.apache.commons.lang.mutable.MutableBoolean;
 import org.sonar.api.CoreProperties;
 import org.sonar.api.SonarPlugin;
+import org.sonar.api.batch.bootstrap.ProjectDefinition;
 import org.sonar.api.batch.debt.internal.DefaultDebtModel;
 import org.sonar.api.measures.CoreMetrics;
 import org.sonar.api.measures.Metric;
+import org.sonar.api.server.rule.RulesDefinition;
+import org.sonar.api.server.rule.RulesDefinition.Repository;
+import org.sonar.batch.analysis.AnalysisProperties;
 import org.sonar.batch.bootstrapper.Batch;
 import org.sonar.batch.bootstrapper.EnvironmentInformation;
+import org.sonar.batch.bootstrapper.IssueListener;
 import org.sonar.batch.bootstrapper.LogOutput;
-import org.sonar.batch.issue.tracking.ServerLineHashesLoader;
+import org.sonar.batch.cache.ProjectCacheStatus;
 import org.sonar.batch.protocol.input.ActiveRule;
 import org.sonar.batch.protocol.input.BatchInput.ServerIssue;
 import org.sonar.batch.protocol.input.FileData;
@@ -66,6 +58,8 @@ import org.sonar.batch.report.ReportPublisher;
 import org.sonar.batch.repository.GlobalRepositoriesLoader;
 import org.sonar.batch.repository.ProjectRepositoriesLoader;
 import org.sonar.batch.repository.ServerIssuesLoader;
+import org.sonar.batch.rule.RulesLoader;
+import org.sonarqube.ws.Rules.ListResponse.Rule;
 
 /**
  * Main utility class for writing batch medium tests.
@@ -89,7 +83,6 @@ public class BatchMediumTester {
     private final FakeProjectRepositoriesLoader projectRefProvider = new FakeProjectRepositoriesLoader();
     private final FakePluginInstaller pluginInstaller = new FakePluginInstaller();
     private final FakeServerIssuesLoader serverIssues = new FakeServerIssuesLoader();
-    private final FakeServerLineHashesLoader serverLineHashes = new FakeServerLineHashesLoader();
     private final Map<String, String> bootstrapProperties = new HashMap<>();
     private final FakeRulesLoader rulesLoader = new FakeRulesLoader();
     private final FakeProjectCacheStatus projectCacheStatus = new FakeProjectCacheStatus();
@@ -197,11 +190,6 @@ public class BatchMediumTester {
       return this;
     }
 
-    public BatchMediumTesterBuilder mockLineHashes(String fileKey, String[] lineHashes) {
-      serverLineHashes.byKey.put(fileKey, lineHashes);
-      return this;
-    }
-
   }
 
   public void start() {
@@ -225,7 +213,6 @@ public class BatchMediumTester {
         builder.globalRefProvider,
         builder.projectRefProvider,
         builder.serverIssues,
-        builder.serverLineHashes,
         builder.rulesLoader,
         builder.projectCacheStatus,
         new DefaultDebtModel())
@@ -403,19 +390,6 @@ public class BatchMediumTester {
       return new Date();
     }
 
-  }
-
-  private static class FakeServerLineHashesLoader implements ServerLineHashesLoader {
-    private Map<String, String[]> byKey = new HashMap<>();
-
-    @Override
-    public String[] getLineHashes(String fileKey, @Nullable MutableBoolean fromCache) {
-      if (byKey.containsKey(fileKey)) {
-        return byKey.get(fileKey);
-      } else {
-        throw new IllegalStateException("You forgot to mock line hashes for " + fileKey);
-      }
-    }
   }
 
 }

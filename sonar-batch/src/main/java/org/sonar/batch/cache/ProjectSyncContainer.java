@@ -20,17 +20,15 @@
 package org.sonar.batch.cache;
 
 import org.sonar.api.batch.bootstrap.ProjectDefinition;
+import org.sonar.api.batch.bootstrap.ProjectReactor;
+import org.sonar.batch.analysis.AnalysisProperties;
 import org.sonar.batch.analysis.DefaultAnalysisMode;
 import org.sonar.batch.cache.WSLoader.LoadStrategy;
-import org.sonar.batch.analysis.AnalysisProperties;
-import org.sonar.api.batch.bootstrap.ProjectReactor;
-import org.sonar.batch.repository.user.UserRepositoryLoader;
-import org.sonar.batch.issue.tracking.ServerLineHashesLoader;
 import org.sonar.batch.repository.DefaultProjectRepositoriesLoader;
 import org.sonar.batch.repository.DefaultServerIssuesLoader;
 import org.sonar.batch.repository.ProjectRepositoriesLoader;
 import org.sonar.batch.repository.ServerIssuesLoader;
-import org.sonar.batch.issue.tracking.DefaultServerLineHashesLoader;
+import org.sonar.batch.repository.user.UserRepositoryLoader;
 import org.sonar.core.platform.ComponentContainer;
 
 public class ProjectSyncContainer extends ComponentContainer {
@@ -71,7 +69,6 @@ public class ProjectSyncContainer extends ComponentContainer {
     addIfMissing(DefaultProjectCacheStatus.class, ProjectCacheStatus.class);
     addIfMissing(DefaultProjectRepositoriesLoader.class, ProjectRepositoriesLoader.class);
     addIfMissing(DefaultServerIssuesLoader.class, ServerIssuesLoader.class);
-    addIfMissing(DefaultServerLineHashesLoader.class, ServerLineHashesLoader.class);
   }
 
 }

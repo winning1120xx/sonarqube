@@ -57,7 +57,6 @@ public class LocalIssueTracking {
 
   private final IssueCache issueCache;
   private final IssueTracking tracking;
-  private final ServerLineHashesLoader lastLineHashes;
   private final IssueWorkflow workflow;
   private final IssueUpdater updater;
   private final IssueChangeContext changeContext;
@@ -70,13 +69,12 @@ public class LocalIssueTracking {
   private boolean hasServerAnalysis;
 
   public LocalIssueTracking(BatchComponentCache resourceCache, IssueCache issueCache, IssueTracking tracking,
-    ServerLineHashesLoader lastLineHashes, IssueWorkflow workflow, IssueUpdater updater,
+    IssueWorkflow workflow, IssueUpdater updater,
     ActiveRules activeRules, ServerIssueRepository serverIssueRepository,
     ProjectRepositories projectRepositories, ReportPublisher reportPublisher) {
     this.componentCache = resourceCache;
     this.issueCache = issueCache;
     this.tracking = tracking;
-    this.lastLineHashes = lastLineHashes;
     this.workflow = workflow;
     this.updater = updater;
     this.serverIssueRepository = serverIssueRepository;
@@ -115,12 +113,11 @@ public class LocalIssueTracking {
       // all the issues that are not closed in db before starting this module scan, including manual issues
       Collection<ServerIssue> serverIssues = loadServerIssues(component);
 
-      SourceHashHolder sourceHashHolder = loadSourceHashes(component);
-
-      IssueTrackingResult trackingResult = tracking.track(sourceHashHolder, serverIssues, rawIssues);
+      FileHashes sourceHashes = loadSourceHashes(component);
+      IssueTrackingResult trackingResult = tracking.track(sourceHashes, serverIssues, rawIssues);
 
       // unmatched from server = issues that have been resolved + issues on disabled/removed rules + manual issues
-      addUnmatchedFromServer(trackingResult.unmatched(), sourceHashHolder, trackedIssues);
+      addUnmatchedFromServer(trackingResult.unmatched(), sourceHashes, trackedIssues);
 
       mergeMatched(component, trackingResult, trackedIssues, rawIssues);
     }
@@ -165,16 +162,16 @@ public class LocalIssueTracking {
   }
 
   @CheckForNull
-  private SourceHashHolder loadSourceHashes(BatchComponent component) {
-    SourceHashHolder sourceHashHolder = null;
+  private FileHashes loadSourceHashes(BatchComponent component) {
+    FileHashes fileHashes = null;
     if (component.isFile()) {
       DefaultInputFile file = (DefaultInputFile) component.inputComponent();
       if (file == null) {
         throw new IllegalStateException("Resource " + component.resource() + " was not found in InputPath cache");
       }
-      sourceHashHolder = new SourceHashHolder(file, lastLineHashes);
+      fileHashes = FileHashes.create(file);
     }
-    return sourceHashHolder;
+    return fileHashes;
   }
 
   private Collection<ServerIssue> loadServerIssues(BatchComponent component) {
@@ -215,12 +212,12 @@ public class LocalIssueTracking {
     }
   }
 
-  private void addUnmatchedFromServer(Collection<ServerIssue> unmatchedIssues, SourceHashHolder sourceHashHolder, Collection<DefaultIssue> issues) {
+  private void addUnmatchedFromServer(Collection<ServerIssue> unmatchedIssues, FileHashes sourceHashes, Collection<DefaultIssue> issues) {
     for (ServerIssue unmatchedIssue : unmatchedIssues) {
       org.sonar.batch.protocol.input.BatchInput.ServerIssue unmatchedPreviousIssue = ((ServerIssueFromWs) unmatchedIssue).getDto();
       DefaultIssue unmatched = toUnmatchedIssue(unmatchedPreviousIssue);
       if (unmatchedIssue.ruleKey().isManual() && !Issue.STATUS_CLOSED.equals(unmatchedPreviousIssue.getStatus())) {
-        relocateManualIssue(unmatched, unmatchedIssue, sourceHashHolder);
+        relocateManualIssue(unmatched, unmatchedIssue, sourceHashes);
       }
       updateUnmatchedIssue(unmatched, false /* manual issues can be kept open */);
       issues.add(unmatched);
@@ -266,15 +263,16 @@ public class LocalIssueTracking {
     issue.setOnDisabledRule(isRemovedRule);
   }
 
-  private void relocateManualIssue(DefaultIssue newIssue, ServerIssue oldIssue, SourceHashHolder sourceHashHolder) {
+  private void relocateManualIssue(DefaultIssue newIssue, ServerIssue oldIssue, FileHashes fileHashes) {
     Integer previousLine = oldIssue.line();
     if (previousLine == null) {
       return;
     }
+    String checksum = oldIssue.checksum();
 
-    Collection<Integer> newLinesWithSameHash = sourceHashHolder.getNewLinesMatching(previousLine);
+    Collection<Integer> newLinesWithSameHash = fileHashes.getLinesForHash(checksum);
     if (newLinesWithSameHash.isEmpty()) {
-      if (previousLine > sourceHashHolder.getHashedSource().length()) {
+      if (previousLine > fileHashes.length()) {
         newIssue.setLine(null);
         updater.setStatus(newIssue, Issue.STATUS_CLOSED, changeContext);
         updater.setResolution(newIssue, Issue.RESOLUTION_REMOVED, changeContext);
@@ -288,4 +286,5 @@ public class LocalIssueTracking {
       updater.setPastMessage(newIssue, oldIssue.message(), changeContext);
     }
   }
+
 }

@@ -19,18 +19,16 @@
  */
 package org.sonar.batch.mediumtest.cache;
 
-import org.sonar.batch.protocol.input.FileData;
-
-import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
+import java.util.Date;
 import org.junit.After;
+import org.junit.Test;
 import org.sonar.api.CoreProperties;
 import org.sonar.batch.mediumtest.BatchMediumTester;
 import org.sonar.batch.protocol.input.ActiveRule;
+import org.sonar.batch.protocol.input.FileData;
 import org.sonar.xoo.XooPlugin;
 import org.sonar.xoo.rule.XooRulesDefinition;
-
-import java.util.Date;
 
 public class CacheSyncTest {
 
@@ -47,9 +45,6 @@ public class CacheSyncTest {
   @Test
   public void testSyncFirstTime() {
     FileData file1 = new FileData("hash", true);
-    String[] hashes = new String[] {
-      "line1", "line2"
-    };
 
     tester = BatchMediumTester.builder()
       .bootstrapProperties(ImmutableMap.of(CoreProperties.ANALYSIS_MODE, CoreProperties.ANALYSIS_MODE_ISSUES))
@@ -58,7 +53,6 @@ public class CacheSyncTest {
       .activateRule(new ActiveRule("xoo", "OneIssuePerLine", null, "One issue per line", "MAJOR", "my/internal/key", "xoo"))
       .setPreviousAnalysisDate(new Date())
       .addFileData("test-project", "file1", file1)
-      .mockLineHashes("test-project:file1", hashes)
       .build();
 
     tester.start();

@@ -23,15 +23,7 @@ package org.sonar.batch.issue.tracking;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import org.sonar.api.batch.BatchSide;
@@ -43,48 +35,39 @@ import org.sonar.batch.protocol.output.BatchReport;
 @BatchSide
 public class IssueTracking {
 
-  private SourceHashHolder sourceHashHolder;
+  private FileHashes fileHashes;
 
   /**
    * @param sourceHashHolder Null when working on resource that is not a file (directory/project)
    */
-  public IssueTrackingResult track(@Nullable SourceHashHolder sourceHashHolder, Collection<ServerIssue> previousIssues, Collection<BatchReport.Issue> rawIssues) {
-    this.sourceHashHolder = sourceHashHolder;
+  public IssueTrackingResult track(@Nullable FileHashes fileHashes, Collection<ServerIssue> previousIssues, Collection<BatchReport.Issue> rawIssues) {
+    this.fileHashes = fileHashes;
     IssueTrackingResult result = new IssueTrackingResult();
 
     // Map new issues with old ones
-    mapIssues(rawIssues, previousIssues, sourceHashHolder, result);
+    mapIssues(rawIssues, previousIssues, result);
     return result;
   }
 
   private String checksum(BatchReport.Issue rawIssue) {
-    if (sourceHashHolder != null && rawIssue.hasLine()) {
-      FileHashes hashedSource = sourceHashHolder.getHashedSource();
+    if (fileHashes != null && rawIssue.hasLine()) {
       // Extra verification if some plugin managed to create issue on a wrong line
-      Preconditions.checkState(rawIssue.getLine() <= hashedSource.length(), "Invalid line number for issue %s. File has only %s line(s)", rawIssue, hashedSource.length());
-      return hashedSource.getHash(rawIssue.getLine());
+      Preconditions.checkState(rawIssue.getLine() <= fileHashes.length(), "Invalid line number for issue %s. File has only %s line(s)", rawIssue, fileHashes.length());
+      return fileHashes.getHash(rawIssue.getLine());
     }
     return null;
   }
 
   @VisibleForTesting
-  void mapIssues(Collection<BatchReport.Issue> rawIssues, @Nullable Collection<ServerIssue> previousIssues, @Nullable SourceHashHolder sourceHashHolder,
+  void mapIssues(Collection<BatchReport.Issue> rawIssues, @Nullable Collection<ServerIssue> previousIssues,
     IssueTrackingResult result) {
-    boolean hasLastScan = false;
 
     if (previousIssues != null) {
-      hasLastScan = true;
       mapLastIssues(rawIssues, previousIssues, result);
     }
 
     // If each new issue matches an old one we can stop the matching mechanism
     if (result.matched().size() != rawIssues.size()) {
-      if (sourceHashHolder != null && hasLastScan) {
-        FileHashes hashedReference = sourceHashHolder.getHashedReference();
-        if (hashedReference != null) {
-          mapNewissues(hashedReference, sourceHashHolder.getHashedSource(), rawIssues, result);
-        }
-      }
       mapIssuesOnSameRule(rawIssues, result);
     }
   }
@@ -101,67 +84,6 @@ public class IssueTracking {
           rawIssue,
           findLastIssueWithSameLineAndChecksum(rawIssue, result),
           result);
-      }
-    }
-  }
-
-  private void mapNewissues(FileHashes hashedReference, FileHashes hashedSource, Collection<BatchReport.Issue> rawIssues, IssueTrackingResult result) {
-
-    IssueTrackingBlocksRecognizer rec = new IssueTrackingBlocksRecognizer(hashedReference, hashedSource);
-
-    RollingFileHashes a = RollingFileHashes.create(hashedReference, 5);
-    RollingFileHashes b = RollingFileHashes.create(hashedSource, 5);
-
-    Multimap<Integer, BatchReport.Issue> rawIssuesByLines = rawIssuesByLines(rawIssues, rec, result);
-    Multimap<Integer, ServerIssue> lastIssuesByLines = lastIssuesByLines(result.unmatched(), rec);
-
-    Map<Integer, HashOccurrence> map = Maps.newHashMap();
-
-    for (Integer line : lastIssuesByLines.keySet()) {
-      int hash = a.getHash(line);
-      HashOccurrence hashOccurrence = map.get(hash);
-      if (hashOccurrence == null) {
-        // first occurrence in A
-        hashOccurrence = new HashOccurrence();
-        hashOccurrence.lineA = line;
-        hashOccurrence.countA = 1;
-        map.put(hash, hashOccurrence);
-      } else {
-        hashOccurrence.countA++;
-      }
-    }
-
-    for (Integer line : rawIssuesByLines.keySet()) {
-      int hash = b.getHash(line);
-      HashOccurrence hashOccurrence = map.get(hash);
-      if (hashOccurrence != null) {
-        hashOccurrence.lineB = line;
-        hashOccurrence.countB++;
-      }
-    }
-
-    for (HashOccurrence hashOccurrence : map.values()) {
-      if (hashOccurrence.countA == 1 && hashOccurrence.countB == 1) {
-        // Guaranteed that lineA has been moved to lineB, so we can map all issues on lineA to all issues on lineB
-        map(rawIssuesByLines.get(hashOccurrence.lineB), lastIssuesByLines.get(hashOccurrence.lineA), result);
-        lastIssuesByLines.removeAll(hashOccurrence.lineA);
-        rawIssuesByLines.removeAll(hashOccurrence.lineB);
-      }
-    }
-
-    // Check if remaining number of lines exceeds threshold
-    if (lastIssuesByLines.keySet().size() * rawIssuesByLines.keySet().size() < 250000) {
-      List<LinePair> possibleLinePairs = Lists.newArrayList();
-      for (Integer oldLine : lastIssuesByLines.keySet()) {
-        for (Integer newLine : rawIssuesByLines.keySet()) {
-          int weight = rec.computeLengthOfMaximalBlock(oldLine, newLine);
-          possibleLinePairs.add(new LinePair(oldLine, newLine, weight));
-        }
-      }
-      Collections.sort(possibleLinePairs, LINE_PAIR_COMPARATOR);
-      for (LinePair linePair : possibleLinePairs) {
-        // High probability that lineA has been moved to lineB, so we can map all Issues on lineA to all Issues on lineB
-        map(rawIssuesByLines.get(linePair.lineB), lastIssuesByLines.get(linePair.lineA), result);
       }
     }
   }
@@ -201,39 +123,6 @@ public class IssueTracking {
 
   private static RuleKey ruleKey(BatchReport.Issue rawIssue) {
     return RuleKey.of(rawIssue.getRuleRepository(), rawIssue.getRuleKey());
-  }
-
-  private void map(Collection<BatchReport.Issue> rawIssues, Collection<ServerIssue> previousIssues, IssueTrackingResult result) {
-    for (BatchReport.Issue rawIssue : rawIssues) {
-      if (isNotAlreadyMapped(rawIssue, result)) {
-        for (ServerIssue previousIssue : previousIssues) {
-          if (isNotAlreadyMapped(previousIssue, result) && Objects.equal(ruleKey(rawIssue), previousIssue.ruleKey())) {
-            mapIssue(rawIssue, previousIssue, result);
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  private Multimap<Integer, BatchReport.Issue> rawIssuesByLines(Collection<BatchReport.Issue> rawIssues, IssueTrackingBlocksRecognizer rec, IssueTrackingResult result) {
-    Multimap<Integer, BatchReport.Issue> rawIssuesByLines = LinkedHashMultimap.create();
-    for (BatchReport.Issue rawIssue : rawIssues) {
-      if (isNotAlreadyMapped(rawIssue, result) && rawIssue.hasLine() && rec.isValidLineInSource(rawIssue.getLine())) {
-        rawIssuesByLines.put(rawIssue.getLine(), rawIssue);
-      }
-    }
-    return rawIssuesByLines;
-  }
-
-  private static Multimap<Integer, ServerIssue> lastIssuesByLines(Collection<ServerIssue> previousIssues, IssueTrackingBlocksRecognizer rec) {
-    Multimap<Integer, ServerIssue> previousIssuesByLines = LinkedHashMultimap.create();
-    for (ServerIssue previousIssue : previousIssues) {
-      if (rec.isValidLineInReference(previousIssue.line())) {
-        previousIssuesByLines.put(previousIssue.line(), previousIssue);
-      }
-    }
-    return previousIssuesByLines;
   }
 
   private ServerIssue findLastIssueWithSameChecksum(BatchReport.Issue rawIssue, Collection<ServerIssue> previousIssues) {
@@ -276,10 +165,6 @@ public class IssueTracking {
     return rawIssue.hasLine() ? rawIssue.getLine() : null;
   }
 
-  private static boolean isNotAlreadyMapped(ServerIssue previousIssue, IssueTrackingResult result) {
-    return result.unmatched().contains(previousIssue);
-  }
-
   private static boolean isNotAlreadyMapped(BatchReport.Issue rawIssue, IssueTrackingResult result) {
     return !result.isMatched(rawIssue);
   }
@@ -311,36 +196,5 @@ public class IssueTracking {
   public String toString() {
     return getClass().getSimpleName();
   }
-
-  private static class LinePair {
-    int lineA;
-    int lineB;
-    int weight;
-
-    public LinePair(int lineA, int lineB, int weight) {
-      this.lineA = lineA;
-      this.lineB = lineB;
-      this.weight = weight;
-    }
-  }
-
-  private static class HashOccurrence {
-    int lineA;
-    int lineB;
-    int countA;
-    int countB;
-  }
-
-  private static final Comparator<LinePair> LINE_PAIR_COMPARATOR = new Comparator<LinePair>() {
-    @Override
-    public int compare(LinePair o1, LinePair o2) {
-      int weightDiff = o2.weight - o1.weight;
-      if (weightDiff != 0) {
-        return weightDiff;
-      } else {
-        return Math.abs(o1.lineA - o1.lineB) - Math.abs(o2.lineA - o2.lineB);
-      }
-    }
-  };
 
 }

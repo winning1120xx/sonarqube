@@ -19,44 +19,39 @@
  */
 package org.sonar.batch.cache;
 
-import static org.mockito.Mockito.when;
-import org.sonar.batch.analysis.DefaultAnalysisMode;
-import org.sonar.batch.analysis.AnalysisProperties;
-import org.sonar.batch.protocol.input.ProjectRepositories;
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.sonar.batch.issue.tracking.DefaultServerLineHashesLoader;
-import org.sonar.batch.repository.DefaultServerIssuesLoader;
-import org.sonar.batch.repository.DefaultProjectRepositoriesLoader;
-import org.sonar.api.batch.bootstrap.ProjectReactor;
 import com.google.common.io.ByteSource;
-
+import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import com.google.common.io.Resources;
-import org.junit.Test;
+import org.apache.commons.lang.mutable.MutableBoolean;
 import org.junit.Before;
-import org.mockito.MockitoAnnotations;
+import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.sonar.api.batch.bootstrap.ProjectDefinition;
-import org.sonar.batch.issue.tracking.ServerLineHashesLoader;
+import org.sonar.api.batch.bootstrap.ProjectReactor;
+import org.sonar.batch.analysis.AnalysisProperties;
+import org.sonar.batch.analysis.DefaultAnalysisMode;
+import org.sonar.batch.protocol.input.ProjectRepositories;
+import org.sonar.batch.repository.DefaultProjectRepositoriesLoader;
+import org.sonar.batch.repository.DefaultServerIssuesLoader;
 import org.sonar.batch.repository.ProjectRepositoriesLoader;
 import org.sonar.batch.repository.ServerIssuesLoader;
 import org.sonar.batch.repository.user.UserRepositoryLoader;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 public class ProjectCacheSynchronizerTest {
   private static final String BATCH_PROJECT = "/batch/project?key=org.codehaus.sonar-plugins%3Asonar-scm-git-plugin&preview=true";
   private static final String ISSUES = "/batch/issues?key=org.codehaus.sonar-plugins%3Asonar-scm-git-plugin";
-  private static final String LINE_HASHES1 = "/api/sources/hash?key=org.codehaus.sonar-plugins%3Asonar-scm-git-plugin%3Asrc%2Ftest%2Fjava%2Forg%2Fsonar%2Fplugins%2Fscm%2Fgit%2FJGitBlameCommandTest.java";
-  private static final String LINE_HASHES2 = "/api/sources/hash?key=org.codehaus.sonar-plugins%3Asonar-scm-git-plugin%3Asrc%2Fmain%2Fjava%2Forg%2Fsonar%2Fplugins%2Fscm%2Fgit%2FGitScmProvider.java";
 
   @Mock
   private ProjectDefinition project;
@@ -73,7 +68,6 @@ public class ProjectCacheSynchronizerTest {
 
   private ProjectRepositoriesLoader projectRepositoryLoader;
   private ServerIssuesLoader issuesLoader;
-  private ServerLineHashesLoader lineHashesLoader;
   private UserRepositoryLoader userRepositoryLoader;
 
   private ProjectCacheSynchronizer sync;
@@ -89,8 +83,6 @@ public class ProjectCacheSynchronizerTest {
 
     when(ws.loadString(BATCH_PROJECT)).thenReturn(new WSLoaderResult<>(batchProject, false));
     when(ws.loadSource(ISSUES)).thenReturn(new WSLoaderResult<>(issues, false));
-    when(ws.loadString(LINE_HASHES1)).thenReturn(new WSLoaderResult<>(lineHashes1, false));
-    when(ws.loadString(LINE_HASHES2)).thenReturn(new WSLoaderResult<>(lineHashes2, false));
 
     when(analysisMode.isIssues()).thenReturn(true);
     when(project.getKeyWithBranch()).thenReturn("org.codehaus.sonar-plugins:sonar-scm-git-plugin");
@@ -99,10 +91,9 @@ public class ProjectCacheSynchronizerTest {
 
     projectRepositoryLoader = new DefaultProjectRepositoriesLoader(ws, analysisMode);
     issuesLoader = new DefaultServerIssuesLoader(ws);
-    lineHashesLoader = new DefaultServerLineHashesLoader(ws);
     userRepositoryLoader = new UserRepositoryLoader(ws);
 
-    sync = new ProjectCacheSynchronizer(projectReactor, projectRepositoryLoader, properties, issuesLoader, lineHashesLoader, userRepositoryLoader,
+    sync = new ProjectCacheSynchronizer(projectReactor, projectRepositoryLoader, properties, issuesLoader, userRepositoryLoader,
       cacheStatus);
   }
 
@@ -112,8 +103,6 @@ public class ProjectCacheSynchronizerTest {
 
     verify(ws).loadString(BATCH_PROJECT);
     verify(ws).loadSource(ISSUES);
-    verify(ws).loadString(LINE_HASHES1);
-    verify(ws).loadString(LINE_HASHES2);
     verifyNoMoreInteractions(ws);
 
     verify(cacheStatus).save(anyString());
@@ -126,7 +115,7 @@ public class ProjectCacheSynchronizerTest {
     when(mockedProjectRepositories.lastAnalysisDate()).thenReturn(null);
     when(projectRepositoryLoader.load(any(ProjectDefinition.class), any(AnalysisProperties.class), any(MutableBoolean.class))).thenReturn(mockedProjectRepositories);
 
-    sync = new ProjectCacheSynchronizer(projectReactor, projectRepositoryLoader, properties, issuesLoader, lineHashesLoader, userRepositoryLoader,
+    sync = new ProjectCacheSynchronizer(projectReactor, projectRepositoryLoader, properties, issuesLoader, userRepositoryLoader,
       cacheStatus);
     sync.load(true);
 
@@ -137,7 +126,7 @@ public class ProjectCacheSynchronizerTest {
   public void testDontSyncIfNotForce() {
     when(cacheStatus.getSyncStatus("org.codehaus.sonar-plugins:sonar-scm-git-plugin")).thenReturn(new Date());
 
-    ProjectCacheSynchronizer sync = new ProjectCacheSynchronizer(projectReactor, projectRepositoryLoader, properties, issuesLoader, lineHashesLoader, userRepositoryLoader,
+    ProjectCacheSynchronizer sync = new ProjectCacheSynchronizer(projectReactor, projectRepositoryLoader, properties, issuesLoader, userRepositoryLoader,
       cacheStatus);
     sync.load(false);
 
