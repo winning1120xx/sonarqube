@@ -22,6 +22,7 @@ package org.sonar.db.component;
 import java.util.Date;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.sonar.api.component.Component;
 import org.sonar.api.resources.Scopes;
@@ -301,4 +302,26 @@ public class ComponentDto implements Component {
       .toString();
   }
 
+  /**
+   * Extracts the leaf module from a path as defined by the column PROJECTS.MODULE_UUID_PATH:
+   * <ul>
+   *   <li>On projects (QUALIFIER='TRK'), MODULE_UUID is NULL and MODULE_UUID_PATH contains only the project UUID.
+   *   Result of this method is the UUID of the project itself.
+   *   </li>
+   *   <li>On modules (QUALIFIER='BRC'), MODULE_UUID is the <b>parent</b> module, for instance the project
+   *   if it's a first-level module, or another module. MODULE_UUID_PATH contains the path from the project to
+   *   the module itself. Result of this method is the UUID of the module but not the MODULE_UUID column.
+   *   </li>
+   *   <li>On directories or files (QUALIFIER='DIR' or 'FIL'), MODULE_UUID is the closest module or the
+   *   single-module project. MODULE_UUID_PATH contains the path from the project to the closest module.
+   *   Result of this method is the UUID of the closest module or of the single-module project.
+   *   </li>
+   * </ul>
+   * @param moduleUuidPath value of the column PROJECTS.MODULE_UUID_PATH
+   */
+  public static String extractLeafModuleUuidFromPath(String moduleUuidPath) {
+    // format of path is ".PROJECT.MODULE1.MODULE2.". We want to extract the value between
+    // the two last dots
+    return StringUtils.substringAfterLast(moduleUuidPath.substring(0, moduleUuidPath.length() - 1), MODULE_UUID_PATH_SEP);
+  }
 }

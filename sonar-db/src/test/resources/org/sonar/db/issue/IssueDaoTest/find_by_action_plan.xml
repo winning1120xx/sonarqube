@@ -2,9 +2,9 @@
 
   <issues
       id="100"
-      kee="ABCDE"
-      component_uuid="CDEF"
-      project_uuid="ABCD"
+      kee="ISSUE_1"
+      component_uuid="FILE1_UUID"
+      project_uuid="PROJECT_UUID"
       rule_id="500"
       severity="BLOCKER"
       manual_severity="[false]"

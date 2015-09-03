@@ -21,38 +21,30 @@
 package org.sonar.server.batch;
 
 import java.io.ByteArrayInputStream;
-import java.util.Arrays;
-import javax.annotation.Nullable;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.sonar.api.config.Settings;
 import org.sonar.api.platform.Server;
-import org.sonar.api.security.DefaultGroups;
+import org.sonar.api.rule.RuleKey;
 import org.sonar.api.utils.System2;
+import org.sonar.api.web.UserRole;
 import org.sonar.batch.protocol.Constants.Severity;
 import org.sonar.batch.protocol.input.BatchInput.ServerIssue;
 import org.sonar.core.permission.GlobalPermissions;
 import org.sonar.db.DbTester;
 import org.sonar.db.component.ComponentDto;
-import org.sonar.server.component.ComponentFinder;
 import org.sonar.db.component.ComponentTesting;
-import org.sonar.server.es.EsTester;
+import org.sonar.db.issue.IssueDto;
+import org.sonar.db.rule.RuleDto;
+import org.sonar.db.rule.RuleTesting;
+import org.sonar.server.component.ComponentFinder;
 import org.sonar.server.exceptions.ForbiddenException;
 import org.sonar.server.issue.IssueTesting;
-import org.sonar.server.issue.index.IssueAuthorizationDao;
-import org.sonar.server.issue.index.IssueAuthorizationIndexer;
-import org.sonar.server.issue.index.IssueDoc;
-import org.sonar.server.issue.index.IssueIndex;
-import org.sonar.server.issue.index.IssueIndexDefinition;
-import org.sonar.server.issue.index.IssueIndexer;
 import org.sonar.server.tester.UserSessionRule;
 import org.sonar.server.ws.WsTester;
 import org.sonar.test.DbTests;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -66,250 +58,98 @@ public class IssuesActionTest {
   @Rule
   public DbTester db = DbTester.create(System2.INSTANCE);
 
-  @ClassRule
-  public static EsTester es = new EsTester().addDefinitions(new IssueIndexDefinition(new Settings()));
-
   @Rule
   public UserSessionRule userSessionRule = UserSessionRule.standalone();
 
-  IssueIndex issueIndex;
-  IssueIndexer issueIndexer;
-  IssueAuthorizationIndexer issueAuthorizationIndexer;
-
   WsTester tester;
-
-  IssuesAction issuesAction;
+  IssuesAction underTest;
 
   @Before
   public void before() {
     db.truncateTables();
-    es.truncateIndices();
 
-    issueIndex = new IssueIndex(es.client(), System2.INSTANCE, userSessionRule);
-    issueIndexer = new IssueIndexer(null, es.client());
-    issueAuthorizationIndexer = new IssueAuthorizationIndexer(null, es.client());
-    issuesAction = new IssuesAction(db.getDbClient(), issueIndex, userSessionRule, new ComponentFinder(db.getDbClient()));
+    underTest = new IssuesAction(db.getDbClient(), userSessionRule, new ComponentFinder(db.getDbClient()));
 
-    tester = new WsTester(new BatchWs(new BatchIndex(mock(Server.class)), issuesAction));
+    tester = new WsTester(new BatchWs(new BatchIndex(mock(Server.class)), underTest));
   }
 
   @Test
-  public void return_minimal_fields() throws Exception {
-    ComponentDto project = ComponentTesting.newProjectDto("ABCD").setKey(PROJECT_KEY);
-    ComponentDto module = ComponentTesting.newModuleDto("BCDE", project).setKey(MODULE_KEY);
-    ComponentDto file = ComponentTesting.newFileDto(module, "CDEF").setKey(FILE_KEY).setPath(null);
+  public void load_issues() throws Exception {
+    RuleDto rule = RuleTesting.newDto(RuleKey.of("java", "S001"));
+    ComponentDto project = ComponentTesting.newProjectDto("PRJ").setKey(PROJECT_KEY);
+    ComponentDto module = ComponentTesting.newModuleDto("MOD", project).setKey(MODULE_KEY);
+    ComponentDto file = ComponentTesting.newFileDto(module, "FIL").setKey(FILE_KEY).setPath(null);
     db.getDbClient().componentDao().insert(db.getSession(), project, module, file);
-    db.getSession().commit();
-
-    indexIssues(IssueTesting.newDoc("EFGH", file)
-      .setRuleKey("squid:AvoidCycle")
+    db.getDbClient().ruleDao().insert(db.getSession(), rule);
+    IssueDto issue = IssueTesting.newDto(rule, file, project)
+      .setKee("ISSUE_UUID")
       .setSeverity("BLOCKER")
       .setStatus("RESOLVED")
-      .setResolution(null)
+      .setResolution("FIXED")
       .setManualSeverity(false)
-      .setMessage(null)
-      .setLine(null)
-      .setChecksum(null)
-      .setAssignee(null));
+      .setMessage("msg")
+      .setLine(42)
+      .setChecksum("ABCDE")
+      .setAssignee("john");
+    db.getDbClient().issueDao().insert(db.getSession(), issue);
+    db.getSession().commit();
 
-    userSessionRule.login("henry").setGlobalPermissions(GlobalPermissions.PREVIEW_EXECUTION);
+    userSessionRule.login("henry")
+      .setGlobalPermissions(GlobalPermissions.PREVIEW_EXECUTION)
+      .addProjectUuidPermissions(UserRole.USER, "PRJ");
 
+    // load the issues all the project
     WsTester.TestRequest request = tester.newGetRequest("batch", "issues").setParam("key", PROJECT_KEY);
-
     ServerIssue serverIssue = ServerIssue.parseDelimitedFrom(new ByteArrayInputStream(request.execute().output()));
-    assertThat(serverIssue.getKey()).isEqualTo("EFGH");
+    assertThat(serverIssue.getKey()).isEqualTo("ISSUE_UUID");
     assertThat(serverIssue.getModuleKey()).isEqualTo(MODULE_KEY);
     assertThat(serverIssue.hasPath()).isFalse();
-    assertThat(serverIssue.getRuleRepository()).isEqualTo("squid");
-    assertThat(serverIssue.getRuleKey()).isEqualTo("AvoidCycle");
-    assertThat(serverIssue.hasLine()).isFalse();
-    assertThat(serverIssue.hasMsg()).isFalse();
-    assertThat(serverIssue.hasResolution()).isFalse();
+    assertThat(serverIssue.getRuleRepository()).isEqualTo("java");
+    assertThat(serverIssue.getRuleKey()).isEqualTo("S001");
+    assertThat(serverIssue.getLine()).isEqualTo(42);
+    assertThat(serverIssue.getMsg()).isEqualTo("msg");
+    assertThat(serverIssue.getResolution()).isEqualTo("FIXED");
     assertThat(serverIssue.getStatus()).isEqualTo("RESOLVED");
     assertThat(serverIssue.getSeverity()).isEqualTo(Severity.BLOCKER);
     assertThat(serverIssue.getManualSeverity()).isFalse();
-    assertThat(serverIssue.hasChecksum()).isFalse();
-    assertThat(serverIssue.hasAssigneeLogin()).isFalse();
-  }
-
-  @Test
-  public void issues_from_project() throws Exception {
-    ComponentDto project = ComponentTesting.newProjectDto("ABCD").setKey(PROJECT_KEY);
-    ComponentDto module = ComponentTesting.newModuleDto("BCDE", project).setKey(MODULE_KEY);
-    ComponentDto file = ComponentTesting.newFileDto(module, "CDEF").setKey(FILE_KEY).setPath("src/org/struts/Action.java");
-    db.getDbClient().componentDao().insert(db.getSession(), project, module, file);
-    db.getSession().commit();
-
-    indexIssues(IssueTesting.newDoc("EFGH", file)
-      .setRuleKey("squid:AvoidCycle")
-      .setSeverity("BLOCKER")
-      .setStatus("RESOLVED")
-      .setResolution("FALSE-POSITIVE")
-      .setManualSeverity(false)
-      .setMessage("Do not use this method")
-      .setLine(200)
-      .setChecksum("123456")
-      .setAssignee("john"));
-
-    userSessionRule.login("henry").setGlobalPermissions(GlobalPermissions.PREVIEW_EXECUTION);
-
-    WsTester.TestRequest request = tester.newGetRequest("batch", "issues").setParam("key", PROJECT_KEY);
-
-    ServerIssue serverIssue = ServerIssue.parseDelimitedFrom(new ByteArrayInputStream(request.execute().output()));
-    assertThat(serverIssue.getKey()).isEqualTo("EFGH");
-    assertThat(serverIssue.getModuleKey()).isEqualTo(MODULE_KEY);
-    assertThat(serverIssue.getPath()).isEqualTo("src/org/struts/Action.java");
-    assertThat(serverIssue.getRuleRepository()).isEqualTo("squid");
-    assertThat(serverIssue.getRuleKey()).isEqualTo("AvoidCycle");
-    assertThat(serverIssue.getLine()).isEqualTo(200);
-    assertThat(serverIssue.getMsg()).isEqualTo("Do not use this method");
-    assertThat(serverIssue.getResolution()).isEqualTo("FALSE-POSITIVE");
-    assertThat(serverIssue.getStatus()).isEqualTo("RESOLVED");
-    assertThat(serverIssue.getSeverity()).isEqualTo(Severity.BLOCKER);
-    assertThat(serverIssue.getManualSeverity()).isFalse();
-    assertThat(serverIssue.getChecksum()).isEqualTo("123456");
+    assertThat(serverIssue.getChecksum()).isEqualTo("ABCDE");
     assertThat(serverIssue.getAssigneeLogin()).isEqualTo("john");
-  }
 
-  @Test
-  public void issues_from_module() throws Exception {
-    ComponentDto project = ComponentTesting.newProjectDto("ABCD").setKey(PROJECT_KEY);
-    ComponentDto module = ComponentTesting.newModuleDto("BCDE", project).setKey(MODULE_KEY);
-    ComponentDto file = ComponentTesting.newFileDto(module, "CDEF").setKey(FILE_KEY).setPath("src/org/struts/Action.java");
-    db.getDbClient().componentDao().insert(db.getSession(), project, module, file);
-    db.getSession().commit();
-
-    indexIssues(IssueTesting.newDoc("EFGH", file)
-      .setRuleKey("squid:AvoidCycle")
-      .setSeverity("BLOCKER")
-      .setStatus("RESOLVED")
-      .setResolution("FALSE-POSITIVE")
-      .setManualSeverity(false)
-      .setMessage("Do not use this method")
-      .setLine(200)
-      .setChecksum("123456")
-      .setAssignee("john"));
-
-    userSessionRule.login("henry").setGlobalPermissions(GlobalPermissions.PREVIEW_EXECUTION);
-
-    WsTester.TestRequest request = tester.newGetRequest("batch", "issues").setParam("key", MODULE_KEY);
-    ServerIssue serverIssue = ServerIssue.parseDelimitedFrom(new ByteArrayInputStream(request.execute().output()));
-    assertThat(serverIssue.getKey()).isEqualTo("EFGH");
+    // load the issues all the module
+    request = tester.newGetRequest("batch", "issues").setParam("key", MODULE_KEY);
+    serverIssue = ServerIssue.parseDelimitedFrom(new ByteArrayInputStream(request.execute().output()));
     assertThat(serverIssue.getModuleKey()).isEqualTo(MODULE_KEY);
-    assertThat(serverIssue.getPath()).isEqualTo("src/org/struts/Action.java");
-    assertThat(serverIssue.getRuleRepository()).isEqualTo("squid");
-    assertThat(serverIssue.getRuleKey()).isEqualTo("AvoidCycle");
-    assertThat(serverIssue.getLine()).isEqualTo(200);
-    assertThat(serverIssue.getMsg()).isEqualTo("Do not use this method");
-    assertThat(serverIssue.getResolution()).isEqualTo("FALSE-POSITIVE");
-    assertThat(serverIssue.getStatus()).isEqualTo("RESOLVED");
-    assertThat(serverIssue.getSeverity()).isEqualTo(Severity.BLOCKER);
-    assertThat(serverIssue.getManualSeverity()).isFalse();
-    assertThat(serverIssue.getChecksum()).isEqualTo("123456");
-    assertThat(serverIssue.getAssigneeLogin()).isEqualTo("john");
   }
 
   @Test
-  public void issues_from_file() throws Exception {
-    ComponentDto project = ComponentTesting.newProjectDto("ABCD").setKey(PROJECT_KEY);
-    ComponentDto module = ComponentTesting.newModuleDto("BCDE", project).setKey(MODULE_KEY);
-    ComponentDto file = ComponentTesting.newFileDto(module, "CDEF").setKey(FILE_KEY).setPath("src/org/struts/Action.java");
-    db.getDbClient().componentDao().insert(db.getSession(), project, module, file);
-    db.getSession().commit();
-
-    indexIssues(IssueTesting.newDoc("EFGH", file)
-      .setRuleKey("squid:AvoidCycle")
-      .setSeverity("BLOCKER")
-      .setStatus("RESOLVED")
-      .setResolution("FALSE-POSITIVE")
-      .setManualSeverity(false)
-      .setMessage("Do not use this method")
-      .setLine(200)
-      .setChecksum("123456")
-      .setAssignee("john"));
-
-    userSessionRule.login("henry").setGlobalPermissions(GlobalPermissions.PREVIEW_EXECUTION);
-
-    WsTester.TestRequest request = tester.newGetRequest("batch", "issues").setParam("key", FILE_KEY);
-    ServerIssue serverIssue = ServerIssue.parseDelimitedFrom(new ByteArrayInputStream(request.execute().output()));
-    assertThat(serverIssue.getKey()).isEqualTo("EFGH");
-    assertThat(serverIssue.getModuleKey()).isEqualTo(MODULE_KEY);
-    assertThat(serverIssue.getPath()).isEqualTo("src/org/struts/Action.java");
-    assertThat(serverIssue.getRuleRepository()).isEqualTo("squid");
-    assertThat(serverIssue.getRuleKey()).isEqualTo("AvoidCycle");
-    assertThat(serverIssue.getLine()).isEqualTo(200);
-    assertThat(serverIssue.getMsg()).isEqualTo("Do not use this method");
-    assertThat(serverIssue.getResolution()).isEqualTo("FALSE-POSITIVE");
-    assertThat(serverIssue.getStatus()).isEqualTo("RESOLVED");
-    assertThat(serverIssue.getSeverity()).isEqualTo(Severity.BLOCKER);
-    assertThat(serverIssue.getManualSeverity()).isFalse();
-    assertThat(serverIssue.getChecksum()).isEqualTo("123456");
-    assertThat(serverIssue.getAssigneeLogin()).isEqualTo("john");
-  }
-
-  @Test
-  public void issues_attached_on_module() throws Exception {
-    ComponentDto project = ComponentTesting.newProjectDto("ABCD").setKey(PROJECT_KEY);
-    ComponentDto module = ComponentTesting.newModuleDto("BCDE", project).setKey(MODULE_KEY);
+  public void load_the_issues_associated_directly_to_module() throws Exception {
+    RuleDto rule = RuleTesting.newDto(RuleKey.of("java", "S001"));
+    ComponentDto project = ComponentTesting.newProjectDto("PRJ").setKey(PROJECT_KEY);
+    ComponentDto module = ComponentTesting.newModuleDto("MOD", project).setKey(MODULE_KEY);
     db.getDbClient().componentDao().insert(db.getSession(), project, module);
-    db.getSession().commit();
-
-    indexIssues(IssueTesting.newDoc("EFGH", module)
-      .setRuleKey("squid:AvoidCycle")
+    db.getDbClient().ruleDao().insert(db.getSession(), rule);
+    IssueDto issue = IssueTesting.newDto(rule, module, project)
+      .setKee("ISSUE_UUID")
       .setSeverity("BLOCKER")
       .setStatus("RESOLVED")
-      .setResolution("FALSE-POSITIVE")
+      .setResolution("FIXED")
       .setManualSeverity(false)
-      .setMessage("Do not use this method")
-      .setLine(200)
-      .setChecksum("123456")
-      .setAssignee("john"));
-
-    userSessionRule.login("henry").setGlobalPermissions(GlobalPermissions.PREVIEW_EXECUTION);
-
-    WsTester.TestRequest request = tester.newGetRequest("batch", "issues").setParam("key", MODULE_KEY);
-    ServerIssue previousIssue = ServerIssue.parseDelimitedFrom(new ByteArrayInputStream(request.execute().output()));
-    assertThat(previousIssue.getKey()).isEqualTo("EFGH");
-    assertThat(previousIssue.getModuleKey()).isEqualTo(MODULE_KEY);
-    assertThat(previousIssue.hasPath()).isFalse();
-    assertThat(previousIssue.getRuleRepository()).isEqualTo("squid");
-    assertThat(previousIssue.getRuleKey()).isEqualTo("AvoidCycle");
-    assertThat(previousIssue.getLine()).isEqualTo(200);
-    assertThat(previousIssue.getMsg()).isEqualTo("Do not use this method");
-    assertThat(previousIssue.getResolution()).isEqualTo("FALSE-POSITIVE");
-    assertThat(previousIssue.getStatus()).isEqualTo("RESOLVED");
-    assertThat(previousIssue.getSeverity()).isEqualTo(Severity.BLOCKER);
-    assertThat(previousIssue.getManualSeverity()).isFalse();
-    assertThat(previousIssue.getChecksum()).isEqualTo("123456");
-    assertThat(previousIssue.getAssigneeLogin()).isEqualTo("john");
-  }
-
-  @Test
-  public void project_issues_attached_file_on_removed_module() throws Exception {
-    ComponentDto project = ComponentTesting.newProjectDto("ABCD").setKey(PROJECT_KEY);
-    // File and module are removed
-    ComponentDto module = ComponentTesting.newModuleDto("BCDE", project).setKey(MODULE_KEY).setEnabled(false);
-    ComponentDto file = ComponentTesting.newFileDto(module, "CDEF").setKey(FILE_KEY).setPath("src/org/struts/Action.java").setEnabled(false);
-    db.getDbClient().componentDao().insert(db.getSession(), project, module, file);
+      .setMessage("msg")
+      .setLine(42)
+      .setChecksum("ABCDE")
+      .setAssignee("john");
+    db.getDbClient().issueDao().insert(db.getSession(), issue);
     db.getSession().commit();
 
-    indexIssues(IssueTesting.newDoc("EFGH", file)
-      .setRuleKey("squid:AvoidCycle")
-      .setSeverity("BLOCKER")
-      .setStatus("RESOLVED")
-      .setResolution("FALSE-POSITIVE")
-      .setManualSeverity(false)
-      .setMessage("Do not use this method")
-      .setLine(200)
-      .setChecksum("123456")
-      .setAssignee("john"));
-
-    userSessionRule.login("henry").setGlobalPermissions(GlobalPermissions.PREVIEW_EXECUTION);
+    userSessionRule.login("henry")
+      .setGlobalPermissions(GlobalPermissions.PREVIEW_EXECUTION)
+      .addProjectUuidPermissions(UserRole.USER, "PRJ");
 
     WsTester.TestRequest request = tester.newGetRequest("batch", "issues").setParam("key", PROJECT_KEY);
     ServerIssue serverIssue = ServerIssue.parseDelimitedFrom(new ByteArrayInputStream(request.execute().output()));
-    assertThat(serverIssue.getKey()).isEqualTo("EFGH");
-    // Module key of removed file should be returned
+
+    // the moduleKey of the issue is the module, but the not the module parent (as defined in table PROJECTS)
+    assertThat(serverIssue.getKey()).isEqualTo("ISSUE_UUID");
     assertThat(serverIssue.getModuleKey()).isEqualTo(MODULE_KEY);
   }
 
@@ -319,16 +159,5 @@ public class IssuesActionTest {
 
     WsTester.TestRequest request = tester.newGetRequest("batch", "issues").setParam("key", PROJECT_KEY);
     request.execute();
-  }
-
-  private void indexIssues(IssueDoc... issues) {
-    issueIndexer.index(Arrays.asList(issues).iterator());
-    for (IssueDoc issue : issues) {
-      addIssueAuthorization(issue.projectUuid(), DefaultGroups.ANYONE, null);
-    }
-  }
-
-  private void addIssueAuthorization(String projectUuid, @Nullable String group, @Nullable String user) {
-    issueAuthorizationIndexer.index(newArrayList(new IssueAuthorizationDao.Dto(projectUuid, 1).addGroup(group).addUser(user)));
   }
 }

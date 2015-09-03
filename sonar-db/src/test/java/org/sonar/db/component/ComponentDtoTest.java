@@ -87,4 +87,13 @@ public class ComponentDtoTest {
     assertThat(new ComponentDto().setModuleUuid("ABCD").setScope(Scopes.DIRECTORY).isRootProject()).isFalse();
     assertThat(new ComponentDto().setModuleUuid(null).setScope(Scopes.PROJECT).setQualifier(Qualifiers.PROJECT).isRootProject()).isTrue();
   }
+
+  @Test
+  public void extractLeafModuleUuidFromPath() throws Exception {
+    assertThat(ComponentDto.extractLeafModuleUuidFromPath(".PROJECT.")).isEqualTo("PROJECT");
+    assertThat(ComponentDto.extractLeafModuleUuidFromPath(".PROJECT.MODULE1.")).isEqualTo("MODULE1");
+    assertThat(ComponentDto.extractLeafModuleUuidFromPath(".PROJECT.MODULE1.MODULE2.")).isEqualTo("MODULE2");
+
+  }
 }
+

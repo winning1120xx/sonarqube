@@ -2,14 +2,14 @@
 
   <group_roles id="1" group_id="[null]" resource_id="399" role="user"/>
 
-  <projects id="399" uuid="ABCD" project_uuid="ABCD" module_uuid="[null]" module_uuid_path="." kee="struts"
+  <projects id="399" uuid="PROJECT_UUID" project_uuid="PROJECT_UUID" module_uuid="[null]" module_uuid_path=".PROJECT_UUID." kee="struts"
             root_id="[null]" qualifier="TRK" scope="PRJ"/>
-  <projects id="400" uuid="BCDE" project_uuid="ABCD" module_uuid="[null]" module_uuid_path=".ABCD." kee="struts-core"
+  <projects id="400" uuid="MODULE_UUID" project_uuid="PROJECT_UUID" module_uuid="PROJECT_UUID" module_uuid_path=".PROJECT_UUID.MODULE_UUID." kee="struts-core"
             root_id="399" qualifier="BRC" scope="PRJ"/>
-  <projects id="401" uuid="CDEF" project_uuid="ABCD" module_uuid="BCDE" module_uuid_path=".ABCD.BCDE." kee="Action.java"
-            root_id="400" qualifier="CLA" scope="PRJ"/>
-  <projects id="402" uuid="DEFG" project_uuid="ABCD" module_uuid="BCDE" module_uuid_path=".ABCD.BCDE." kee="Filter.java"
-            root_id="400" qualifier="CLA" scope="PRJ"/>
+  <projects id="401" uuid="FILE1_UUID" project_uuid="PROJECT_UUID" module_uuid="MODULE_UUID" module_uuid_path=".PROJECT_UUID.MODULE_UUID." kee="Action.java"
+            root_id="400" qualifier="FIL" scope="FIL"/>
+  <projects id="402" uuid="FILE2_UUID" project_uuid="PROJECT_UUID" module_uuid="MODULE_UUID" module_uuid_path=".PROJECT_UUID.MODULE_UUID." kee="Filter.java"
+            root_id="400" qualifier="FIL" scope="FIL"/>
 
   <snapshots id="100" project_id="399" root_snapshot_id="[null]" parent_snapshot_id="[null]" root_project_id="399"
              path="" islast="[true]"/>

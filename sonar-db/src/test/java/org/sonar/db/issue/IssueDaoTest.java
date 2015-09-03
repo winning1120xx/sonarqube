@@ -52,25 +52,21 @@ public class IssueDaoTest {
   public void select_non_closed_issues_by_module() {
     dbTester.prepareDbUnit(getClass(), "shared.xml", "should_select_non_closed_issues_by_module.xml");
 
-    // 400 is a non-root module, we should find 2 issues from classes and one on itself
+    // issues on the module and all its components
     DefaultResultHandler handler = new DefaultResultHandler();
-    dao.selectNonClosedIssuesByModule(400, handler);
-    assertThat(handler.getResultList()).hasSize(3);
+    dao.selectNonClosedIssuesByModuleOrProjectUuid(dbTester.getSession(), "MODULE_UUID", handler);
+    assertThat(handler.getResultList()).extracting("key").containsOnly("ISSUE_1", "ISSUE_2", "ISSUE_4");
 
-    IssueDto issue = (IssueDto) handler.getResultList().get(0);
-    assertThat(issue.getRuleRepo()).isNotNull();
-    assertThat(issue.getRule()).isNotNull();
-    assertThat(issue.getComponentKey()).isNotNull();
-    assertThat(issue.getProjectKey()).isEqualTo("struts");
+    for (Object dto : handler.getResultList()) {
+      assertThat(((IssueDto) dto).getComponentKey()).isNotEmpty();
+      assertThat(((IssueDto) dto).getProjectKey()).isEqualTo("struts");
+      assertThat(((IssueDto) dto).getModuleUuidPath()).isEqualTo(".PROJECT_UUID.MODULE_UUID.");
+    }
 
-    // 399 is the root module, we should only find 1 issue on itself
+    // issues on the project and all its components
     handler = new DefaultResultHandler();
-    dao.selectNonClosedIssuesByModule(399, handler);
-    assertThat(handler.getResultList()).hasSize(1);
-
-    issue = (IssueDto) handler.getResultList().get(0);
-    assertThat(issue.getComponentKey()).isEqualTo("struts");
-    assertThat(issue.getProjectKey()).isEqualTo("struts");
+    dao.selectNonClosedIssuesByModuleOrProjectUuid(dbTester.getSession(), "PROJECT_UUID", handler);
+    assertThat(handler.getResultList()).hasSize(4);
   }
 
   /**
@@ -84,7 +80,7 @@ public class IssueDaoTest {
 
     // 400 is a non-root module, we should find 2 issues from classes and one on itself
     DefaultResultHandler handler = new DefaultResultHandler();
-    dao.selectNonClosedIssuesByModule(400, handler);
+    dao.selectNonClosedIssuesByModuleOrProjectUuid(dbTester.getSession(), "MODULE_UUID", handler);
     assertThat(handler.getResultList()).hasSize(3);
 
     IssueDto issue = (IssueDto) handler.getResultList().get(0);
@@ -98,11 +94,11 @@ public class IssueDaoTest {
   public void selectByKeyOrFail() {
     dbTester.prepareDbUnit(getClass(), "shared.xml", "get_by_key.xml");
 
-    IssueDto issue = dao.selectOrFailByKey(dbTester.getSession(), "I1");
-    assertThat(issue.getKee()).isEqualTo("I1");
+    IssueDto issue = dao.selectOrFailByKey(dbTester.getSession(), "ISSUE_1");
+    assertThat(issue.getKee()).isEqualTo("ISSUE_1");
     assertThat(issue.getId()).isEqualTo(1L);
-    assertThat(issue.getComponentUuid()).isEqualTo("CDEF");
-    assertThat(issue.getProjectUuid()).isEqualTo("ABCD");
+    assertThat(issue.getComponentUuid()).isEqualTo("FILE1_UUID");
+    assertThat(issue.getProjectUuid()).isEqualTo("PROJECT_UUID");
     assertThat(issue.getRuleId()).isEqualTo(500);
     assertThat(issue.getLanguage()).isEqualTo("java");
     assertThat(issue.getSeverity()).isEqualTo("BLOCKER");
@@ -144,20 +140,20 @@ public class IssueDaoTest {
   public void selectByKeys() {
     dbTester.prepareDbUnit(getClass(), "shared.xml", "get_by_key.xml");
 
-    List<IssueDto> issues = dao.selectByKeys(dbTester.getSession(), asList("I1", "I2", "I3"));
+    List<IssueDto> issues = dao.selectByKeys(dbTester.getSession(), asList("ISSUE_1", "ISSUE_2", "ISSUE_3"));
     // results are not ordered, so do not use "containsExactly"
-    assertThat(issues).extracting("key").containsOnly("I1", "I2");
+    assertThat(issues).extracting("key").containsOnly("ISSUE_1", "ISSUE_2");
   }
 
   @Test
   public void selectByOrderedKeys() {
     dbTester.prepareDbUnit(getClass(), "shared.xml", "get_by_key.xml");
 
-    Iterable<IssueDto> issues = dao.selectByOrderedKeys(dbTester.getSession(), asList("I1", "I2", "I3"));
-    assertThat(issues).extracting("key").containsExactly("I1", "I2");
+    Iterable<IssueDto> issues = dao.selectByOrderedKeys(dbTester.getSession(), asList("ISSUE_1", "ISSUE_2", "ISSUE_3"));
+    assertThat(issues).extracting("key").containsExactly("ISSUE_1", "ISSUE_2");
 
-    issues = dao.selectByOrderedKeys(dbTester.getSession(), asList("I2", "I3", "I1"));
-    assertThat(issues).extracting("key").containsExactly("I2", "I1");
+    issues = dao.selectByOrderedKeys(dbTester.getSession(), asList("ISSUE_2", "ISSUE_3", "ISSUE_1"));
+    assertThat(issues).extracting("key").containsExactly("ISSUE_2", "ISSUE_1");
   }
 
   @Test
@@ -168,10 +164,10 @@ public class IssueDaoTest {
     assertThat(issues).hasSize(1);
 
     IssueDto issue = issues.get(0);
-    assertThat(issue.getKee()).isEqualTo("ABCDE");
+    assertThat(issue.getKee()).isEqualTo("ISSUE_1");
     assertThat(issue.getActionPlanKey()).isEqualTo("AP-1");
-    assertThat(issue.getComponentUuid()).isEqualTo("CDEF");
-    assertThat(issue.getProjectUuid()).isEqualTo("ABCD");
+    assertThat(issue.getComponentUuid()).isEqualTo("FILE1_UUID");
+    assertThat(issue.getProjectUuid()).isEqualTo("PROJECT_UUID");
     assertThat(issue.getRuleId()).isEqualTo(500);
     assertThat(issue.getLanguage()).isEqualTo("java");
     assertThat(issue.getSeverity()).isEqualTo("BLOCKER");

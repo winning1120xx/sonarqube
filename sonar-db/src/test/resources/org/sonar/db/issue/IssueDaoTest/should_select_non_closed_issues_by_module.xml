@@ -3,9 +3,9 @@
   <!-- Open Issue on a file -->
   <issues
     id="100"
-    kee="100"
-    component_uuid="CDEF"
-    project_uuid="ABCD"
+    kee="ISSUE_1"
+    component_uuid="FILE1_UUID"
+    project_uuid="PROJECT_UUID"
     rule_id="500"
     severity="BLOCKER"
     manual_severity="[false]"
@@ -30,9 +30,9 @@
   <!-- Open Issue on a file -->
   <issues
     id="101"
-    kee="101"
-    component_uuid="DEFG"
-    project_uuid="ABCD"
+    kee="ISSUE_2"
+    component_uuid="FILE2_UUID"
+    project_uuid="PROJECT_UUID"
     rule_id="501"
     severity="MAJOR"
     manual_severity="[false]"
@@ -57,9 +57,9 @@
   <!-- Closed Issue on a file -->
   <issues
     id="102"
-    kee="102"
-    component_uuid="DEFG"
-    project_uuid="ABCD"
+    kee="ISSUE_3"
+    component_uuid="FILE2_UUID"
+    project_uuid="PROJECT_UUID"
     rule_id="501"
     severity="MAJOR"
     manual_severity="[false]"
@@ -81,12 +81,12 @@
     locations="[null]"
     />
 
-  <!-- Open Issue on a sub module -->
+  <!-- Open Issue on a module -->
   <issues
     id="103"
-    kee="103"
-    component_uuid="BCDE"
-    project_uuid="ABCD"
+    kee="ISSUE_4"
+    component_uuid="MODULE_UUID"
+    project_uuid="PROJECT_UUID"
     rule_id="501"
     severity="MAJOR"
     manual_severity="[false]"
@@ -111,9 +111,9 @@
   <!-- Open Issue on a root module -->
   <issues
     id="104"
-    kee="104"
-    component_uuid="ABCD"
-    project_uuid="ABCD"
+    kee="ISSUE_5"
+    component_uuid="PROJECT_UUID"
+    project_uuid="PROJECT_UUID"
     rule_id="501"
     severity="MAJOR"
     manual_severity="[false]"

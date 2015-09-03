@@ -31,31 +31,17 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ibatis.session.ResultHandler;
-import org.apache.ibatis.session.SqlSession;
 import org.sonar.db.Dao;
 import org.sonar.db.DatabaseUtils;
 import org.sonar.db.DbSession;
-import org.sonar.db.MyBatis;
 import org.sonar.db.RowNotFoundException;
 
 import static com.google.common.collect.FluentIterable.from;
 
 public class IssueDao implements Dao {
 
-  private final MyBatis mybatis;
-
-  public IssueDao(MyBatis mybatis) {
-    this.mybatis = mybatis;
-  }
-
-  public void selectNonClosedIssuesByModule(long componentId, ResultHandler handler) {
-    SqlSession session = mybatis.openSession(false);
-    try {
-      session.select("org.sonar.db.issue.IssueMapper.selectNonClosedIssuesByModule", componentId, handler);
-
-    } finally {
-      MyBatis.closeQuietly(session);
-    }
+  public void selectNonClosedIssuesByModuleOrProjectUuid(DbSession dbSession, String moduleOrProjectUuid, ResultHandler handler) {
+    dbSession.select("org.sonar.db.issue.IssueMapper.selectNonClosedIssuesByModuleOrProjectUuid", moduleOrProjectUuid, handler);
   }
 
   public Optional<IssueDto> selectByKey(DbSession session, String key) {
