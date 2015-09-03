@@ -165,7 +165,7 @@ public class IssuesAction implements BatchWsAction {
       if (resolution != null) {
         outputBuilder.setResolution(resolution);
       }
-      outputBuilder.setCreationDate(dto.getCreatedAt());
+      outputBuilder.setCreationDate(dto.getIssueCreationTime());
       try {
         outputBuilder.build().writeDelimitedTo(outputStream);
       } catch (IOException e) {
