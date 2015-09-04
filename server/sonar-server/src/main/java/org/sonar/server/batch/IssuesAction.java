@@ -129,9 +129,10 @@ public class IssuesAction implements BatchWsAction {
 
     @Override
     public void handleResult(ResultContext resultContext) {
+      outputBuilder.clear();
+
       IssueDto dto = (IssueDto) resultContext.getResultObject();
       outputBuilder.setKey(dto.getKey());
-
       String moduleKey = moduleKeys.get(dto);
       if (moduleKey != null) {
         outputBuilder.setModuleKey(moduleKey);
