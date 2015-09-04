@@ -43,8 +43,7 @@ public class PropertySetsTest {
       "/administration/suite/PropertySetsTest/property-sets/reference.html",
       "/administration/suite/PropertySetsTest/property-sets/all_types.html"
       ).build();
-    // Use the old runner because it fails with the new Selenium runner
-    orchestrator.executeSelenese(selenese);
+    new SeleneseTest(selenese).runOn(orchestrator);
 
     // SSF-25 Check that the password has well be setted as now it does not appears in the html source code
     String sonarDemoValue = getProperty("sonar.demo");
