@@ -47,6 +47,7 @@ import org.sonar.db.version.v51.RemovePermissionsOnModulesMigrationStep;
 import org.sonar.db.version.v51.RenameComponentRelatedParamsInIssueFilters;
 import org.sonar.db.version.v51.UpdateProjectsModuleUuidPath;
 import org.sonar.db.version.v52.AddManualMeasuresComponentUuidColumn;
+import org.sonar.db.version.v52.DeleteActivitiesOnAnalysisReports;
 import org.sonar.db.version.v52.FeedEventsComponentUuid;
 import org.sonar.db.version.v52.FeedFileSourcesDataType;
 import org.sonar.db.version.v52.FeedManualMeasuresComponentUuid;
@@ -103,6 +104,7 @@ public class MigrationStepModule extends Module {
       FeedManualMeasuresComponentUuid.class,
       RemoveSnapshotLibraries.class,
       RemoveComponentLibraries.class,
-      RemoveDuplicatedComponentKeys.class);
+      RemoveDuplicatedComponentKeys.class,
+      DeleteActivitiesOnAnalysisReports.class);
   }
 }

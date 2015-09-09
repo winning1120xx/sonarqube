@@ -23,6 +23,8 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.sonar.db.activity.ActivityDao;
+import org.sonar.db.ce.CeActivityDao;
+import org.sonar.db.ce.CeQueueDao;
 import org.sonar.db.component.ComponentDao;
 import org.sonar.db.component.ComponentLinkDao;
 import org.sonar.db.component.ResourceDao;
@@ -96,6 +98,8 @@ public class DbClient {
   private final ActionPlanDao actionPlanDao;
   private final ActionPlanStatsDao actionPlanStatsDao;
   private final AnalysisReportDao analysisReportDao;
+  private final CeQueueDao ceQueueDao;
+  private final CeActivityDao ceActivityDao;
   private final DashboardDao dashboardDao;
   private final ActiveDashboardDao activeDashboardDao;
   private final WidgetDao widgetDao;
@@ -149,6 +153,8 @@ public class DbClient {
     actionPlanDao = getDao(map, ActionPlanDao.class);
     actionPlanStatsDao = getDao(map, ActionPlanStatsDao.class);
     analysisReportDao = getDao(map, AnalysisReportDao.class);
+    ceQueueDao = getDao(map, CeQueueDao.class);
+    ceActivityDao = getDao(map, CeActivityDao.class);
     dashboardDao = getDao(map, DashboardDao.class);
     activeDashboardDao = getDao(map, ActiveDashboardDao.class);
     widgetDao = getDao(map, WidgetDao.class);
@@ -282,6 +288,14 @@ public class DbClient {
 
   public AnalysisReportDao analysisReportDao() {
     return analysisReportDao;
+  }
+
+  public CeQueueDao ceQueueDao() {
+    return ceQueueDao;
+  }
+
+  public CeActivityDao ceActivityDao() {
+    return ceActivityDao;
   }
 
   public DashboardDao dashboardDao() {

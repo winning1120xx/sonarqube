@@ -17,18 +17,24 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonar.db.version;
+package org.sonar.api.utils.internal;
 
-import org.junit.Test;
-import org.sonar.core.platform.ComponentContainer;
+import org.sonar.api.utils.System2;
 
-import static org.assertj.core.api.Assertions.assertThat;
+public class TestSystem2 extends System2 {
 
-public class MigrationStepModuleTest {
-  @Test
-  public void verify_count_of_added_MigrationStep_types() {
-    ComponentContainer container = new ComponentContainer();
-    new MigrationStepModule().configure(container);
-    assertThat(container.size()).isEqualTo(39);
+  private long now = 0L;
+
+  public TestSystem2 setNow(long l) {
+    this.now = l;
+    return this;
+  }
+
+  @Override
+  public long now() {
+    if (now <= 0L) {
+      throw new IllegalStateException("Method setNow() was not called by test");
+    }
+    return now;
   }
 }

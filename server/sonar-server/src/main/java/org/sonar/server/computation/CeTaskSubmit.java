@@ -17,18 +17,44 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonar.db.version;
+package org.sonar.server.computation;
 
-import org.junit.Test;
-import org.sonar.core.platform.ComponentContainer;
+public class CeTaskSubmit {
 
-import static org.assertj.core.api.Assertions.assertThat;
+  private final String uuid;
+  private String type;
+  private String componentUuid;
+  private String submitterLogin;
 
-public class MigrationStepModuleTest {
-  @Test
-  public void verify_count_of_added_MigrationStep_types() {
-    ComponentContainer container = new ComponentContainer();
-    new MigrationStepModule().configure(container);
-    assertThat(container.size()).isEqualTo(39);
+  CeTaskSubmit(String uuid) {
+    this.uuid = uuid;
+  }
+
+  public String getUuid() {
+    return uuid;
+  }
+
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
+
+  public String getComponentUuid() {
+    return componentUuid;
+  }
+
+  public void setComponentUuid(String s) {
+    this.componentUuid = s;
+  }
+
+  public String getSubmitterLogin() {
+    return submitterLogin;
+  }
+
+  public void setSubmitterLogin(String s) {
+    this.submitterLogin = s;
   }
 }

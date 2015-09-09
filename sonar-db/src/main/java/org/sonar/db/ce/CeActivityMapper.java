@@ -17,18 +17,25 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonar.db.version;
+package org.sonar.db.ce;
 
-import org.junit.Test;
-import org.sonar.core.platform.ComponentContainer;
+import java.util.List;
+import javax.annotation.CheckForNull;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.session.RowBounds;
 
-import static org.assertj.core.api.Assertions.assertThat;
+public interface CeActivityMapper {
 
-public class MigrationStepModuleTest {
-  @Test
-  public void verify_count_of_added_MigrationStep_types() {
-    ComponentContainer container = new ComponentContainer();
-    new MigrationStepModule().configure(container);
-    assertThat(container.size()).isEqualTo(39);
-  }
+  List<String> selectUuidsOfRecentlyCreatedByIsLastKey(@Param("isLastKey") String isLastKey, RowBounds rowBounds);
+
+  @CheckForNull
+  CeActivityDto selectByUuid(@Param("uuid") String uuid);
+
+  List<CeActivityDto> selectByComponentUuid(@Param("componentUuid") String componentUuid);
+
+  void insert(CeActivityDto dto);
+
+  void updateIsLastToFalseForLastKey(@Param("isLastKey") String isLastKey, @Param("updatedAt") long updatedAt);
+
+  void updateIsLastToTrueForUuid(@Param("uuid") String uuid, @Param("updatedAt") long updatedAt);
 }

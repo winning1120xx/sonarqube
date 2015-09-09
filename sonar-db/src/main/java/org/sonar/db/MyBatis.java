@@ -32,6 +32,8 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.sonar.api.utils.log.Loggers;
 import org.sonar.db.activity.ActivityDto;
 import org.sonar.db.activity.ActivityMapper;
+import org.sonar.db.ce.CeActivityMapper;
+import org.sonar.db.ce.CeQueueMapper;
 import org.sonar.db.component.ComponentDto;
 import org.sonar.db.component.ComponentLinkDto;
 import org.sonar.db.component.ComponentLinkMapper;
@@ -161,6 +163,7 @@ public class MyBatis {
     MyBatisConfBuilder confBuilder = new MyBatisConfBuilder(database);
 
     confBuilder.loadAlias("ActiveDashboard", ActiveDashboardDto.class);
+    confBuilder.loadAlias("AnalysisReport", AnalysisReportDto.class);
     confBuilder.loadAlias("Author", AuthorDto.class);
     confBuilder.loadAlias("Component", ComponentDto.class);
     confBuilder.loadAlias("ComponentLink", ComponentLinkDto.class);
@@ -206,7 +209,6 @@ public class MyBatis {
     confBuilder.loadAlias("ActiveRuleParam", ActiveRuleParamDto.class);
     confBuilder.loadAlias("RequirementMigration", RequirementMigrationDto.class);
     confBuilder.loadAlias("Activity", ActivityDto.class);
-    confBuilder.loadAlias("AnalysisReport", AnalysisReportDto.class);
     confBuilder.loadAlias("IdUuidPair", IdUuidPair.class);
     confBuilder.loadAlias("FilePathWithHash", FilePathWithHashDto.class);
     confBuilder.loadAlias("UuidWithProjectUuid", UuidWithProjectUuidDto.class);
@@ -234,7 +236,7 @@ public class MyBatis {
       GroupMembershipMapper.class, QualityProfileMapper.class, ActiveRuleMapper.class,
       MeasureMapper.class, MetricMapper.class, CustomMeasureMapper.class, QualityGateMapper.class, QualityGateConditionMapper.class, ComponentMapper.class, SnapshotMapper.class,
       ProjectQgateAssociationMapper.class, EventMapper.class,
-      AnalysisReportMapper.class, ComponentLinkMapper.class,
+      AnalysisReportMapper.class, CeQueueMapper.class, CeActivityMapper.class, ComponentLinkMapper.class,
       Migration45Mapper.class, Migration50Mapper.class
     };
     confBuilder.loadMappers(mappers);

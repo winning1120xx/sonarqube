@@ -17,18 +17,29 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonar.db.version;
 
-import org.junit.Test;
-import org.sonar.core.platform.ComponentContainer;
+package org.sonar.server.computation.ws;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.sonar.api.server.ws.WebService;
 
-public class MigrationStepModuleTest {
-  @Test
-  public void verify_count_of_added_MigrationStep_types() {
-    ComponentContainer container = new ComponentContainer();
-    new MigrationStepModule().configure(container);
-    assertThat(container.size()).isEqualTo(39);
+public class CeWs implements WebService {
+
+  public static final String ENDPOINT = "api/ce";
+
+  private final CeWsAction[] actions;
+
+  public CeWs(CeWsAction... actions) {
+    this.actions = actions;
+  }
+
+  @Override
+  public void define(Context context) {
+    NewController controller = context
+      .createController(ENDPOINT)
+      .setDescription("Compute Engine");
+    for (CeWsAction action : actions) {
+      action.define(controller);
+    }
+    controller.done();
   }
 }
