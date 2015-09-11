@@ -22,10 +22,10 @@ package com.sonar.orchestrator.util;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class NetworkUtils {
-  private static final Random RANDOM = new Random();
+  private static final AtomicInteger nextPort = new AtomicInteger(20000);
 
   private NetworkUtils() {
   }
@@ -37,11 +37,13 @@ public final class NetworkUtils {
       System.out.println("=== Use random and nc on TRAVIS");
 
       for (int i = 0; i < 10; i++) {
-        int port = 10000 + RANDOM.nextInt(50000);
+        int port = nextPort.getAndIncrement();
 
         try {
+          System.out.println("=== Trying port " + port);
           Process process = new ProcessBuilder("nc", "-z", "localhost", Integer.toString(port)).start();
           if (process.waitFor() == 1) {
+            System.out.println("=== Using port " + port);
             return port;
           }
         } catch (Exception e) {
