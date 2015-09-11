@@ -22,16 +22,39 @@ package com.sonar.orchestrator.util;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.util.Random;
 
 public final class NetworkUtils {
+  private static final Random RANDOM = new Random();
+
   private NetworkUtils() {
   }
 
   public static int getNextAvailablePort() {
     System.out.println("=== Override method provided by orchestrator");
 
+    if ("true".equals(System.getenv("TRAVIS"))) {
+      System.out.println("=== Use random and nc on TRAVIS");
+
+      for (int i = 0; i < 10; i++) {
+        int port = 10000 + RANDOM.nextInt(50000);
+
+        try {
+          Process process = new ProcessBuilder("nc", "-z", "localhost", Integer.toString(port)).start();
+          if (process.waitFor() == 1) {
+            return port;
+          }
+        } catch (Exception e) {
+          // Ignore. will try again
+          System.out.println(e);
+        }
+      }
+
+      throw new IllegalStateException("Can't find a free network port");
+    }
+
     try (ServerSocket socket = new ServerSocket()) {
-      socket.bind(new InetSocketAddress("0.0.0.0", 0));
+      socket.bind(new InetSocketAddress("localhost", 0));
       return socket.getLocalPort();
     } catch (IOException e) {
       throw new IllegalStateException("Can't find a free network port", e);
