@@ -45,6 +45,16 @@ env:
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=38
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=39
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=40
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=41
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=42
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=43
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=44
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=45
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=46
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=47
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=48
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=49
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=50
 
 matrix:
   fast_finish: true

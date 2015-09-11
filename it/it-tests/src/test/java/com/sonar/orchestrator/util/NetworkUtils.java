@@ -34,8 +34,6 @@ public final class NetworkUtils {
     System.out.println("=== Override method provided by orchestrator");
 
     if ("true".equals(System.getenv("TRAVIS"))) {
-      System.out.println("=== Use random and nc on TRAVIS");
-
       for (int i = 0; i < 10; i++) {
         int port = nextPort.getAndIncrement();
 
