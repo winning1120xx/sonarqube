@@ -12,7 +12,7 @@ env:
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=5
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=6
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=7
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=7
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=8
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=9
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=10
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=11
@@ -23,6 +23,8 @@ env:
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=16
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=17
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=18
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=19
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=20
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=21
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=22
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=23
@@ -30,17 +32,19 @@ env:
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=25
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=26
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=27
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=27
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=28
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=29
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=210
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=211
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=212
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=213
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=214
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=215
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=216
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=217
-  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=218
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=30
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=31
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=32
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=33
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=34
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=35
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=36
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=37
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=38
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=39
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=40
 
 matrix:
   fast_finish: true
