@@ -19,45 +19,41 @@
  */
 package com.sonar.orchestrator.util;
 
+import org.apache.commons.lang.ArrayUtils;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class NetworkUtils {
-  private static final AtomicInteger nextPort = new AtomicInteger(20000);
+  private static final Set<Integer> USED = Collections.synchronizedSet(new HashSet<Integer>());
 
   private NetworkUtils() {
   }
 
   public static int getNextAvailablePort() {
-    System.out.println("=== Override method provided by orchestrator");
-
-    if ("true".equals(System.getenv("TRAVIS"))) {
-      for (int i = 0; i < 10; i++) {
-        int port = nextPort.getAndIncrement();
-
-        try {
-          System.out.println("=== Trying port " + port);
-          Process process = new ProcessBuilder("nc", "-z", "localhost", Integer.toString(port)).start();
-          if (process.waitFor() == 1) {
-            System.out.println("=== Using port " + port);
-            return port;
-          }
-        } catch (Exception e) {
-          // Ignore. will try again
-          System.out.println(e);
+    for (int index = 0; index < 10; index++) {
+      try (ServerSocket socket = new ServerSocket()) {
+        socket.bind(new InetSocketAddress("localhost", 0));
+        int unusedPort = socket.getLocalPort();
+        if (isValidPort(unusedPort) && USED.add(unusedPort)) {
+          return unusedPort;
         }
+      } catch (IOException e) {
+        throw new IllegalStateException("Can't find a free network port", e);
       }
-
-      throw new IllegalStateException("Can't find a free network port");
     }
 
-    try (ServerSocket socket = new ServerSocket()) {
-      socket.bind(new InetSocketAddress("localhost", 0));
-      return socket.getLocalPort();
-    } catch (IOException e) {
-      throw new IllegalStateException("Can't find a free network port", e);
-    }
+    throw new IllegalStateException("Can't find an open network port");
+  }
+
+  // Firefox blocks some reserved ports : http://www-archive.mozilla.org/projects/netlib/PortBanning.html
+  private static final int[] BLOCKED_PORTS = {2049, 4045, 6000};
+
+  static boolean isValidPort(int port) {
+    return port > 1023 && !ArrayUtils.contains(BLOCKED_PORTS, port);
   }
 }
