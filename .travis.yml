@@ -23,6 +23,24 @@ env:
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=16
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=17
   - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=18
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=21
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=22
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=23
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=24
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=25
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=26
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=27
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=27
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=29
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=210
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=211
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=212
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=213
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=214
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=215
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=216
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=217
+  - JOB=ITS IT_CATEGORY=server_updatecenter UNUSED=218
 
 matrix:
   fast_finish: true
