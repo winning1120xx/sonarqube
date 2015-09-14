@@ -169,18 +169,11 @@ public class PurgeDao implements Dao {
     return result;
   }
 
-  public PurgeDao deleteResourceTree(IdUuidPair rootIdUuid, PurgeProfiler profiler) {
-    DbSession session = mybatis.openSession(true);
-    try {
-      return deleteResourceTree(session, rootIdUuid, profiler);
-    } finally {
-      MyBatis.closeQuietly(session);
-    }
-  }
-
-  public PurgeDao deleteResourceTree(DbSession session, IdUuidPair rootIdUuid, PurgeProfiler profiler) {
-    deleteProject(rootIdUuid, mapper(session), new PurgeCommands(session, profiler));
-    deleteFileSources(rootIdUuid.getUuid(), new PurgeCommands(session, profiler));
+  public PurgeDao deleteProject(DbSession session, String uuid) {
+    PurgeProfiler profiler = new PurgeProfiler();
+    PurgeCommands purgeCommands = new PurgeCommands(session, profiler);
+    deleteProject(uuid, mapper(session), purgeCommands);
+    deleteFileSources(uuid, purgeCommands);
     return this;
   }
 
@@ -188,14 +181,9 @@ public class PurgeDao implements Dao {
     commands.deleteFileSources(rootUuid);
   }
 
-  private static void deleteProject(IdUuidPair rootProjectId, PurgeMapper mapper, PurgeCommands commands) {
-    List<IdUuidPair> childrenIdUuid = mapper.selectProjectIdUuidsByRootId(rootProjectId.getId());
-    for (IdUuidPair childId : childrenIdUuid) {
-      deleteProject(childId, mapper, commands);
-    }
-
-    List<IdUuidPair> componentIdUuids = mapper.selectComponentIdUuidsByRootId(rootProjectId.getId());
-    commands.deleteResources(componentIdUuids);
+  private static void deleteProject(String rootUuid, PurgeMapper mapper, PurgeCommands commands) {
+    List<IdUuidPair> childrenIds = mapper.selectComponentsByProjectUuid(rootUuid);
+    commands.deleteResources(childrenIds);
   }
 
   private void disableResource(IdUuidPair componentIdUuid, PurgeMapper mapper) {
